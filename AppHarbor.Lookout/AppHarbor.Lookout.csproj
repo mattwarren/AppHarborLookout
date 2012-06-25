@@ -68,6 +68,7 @@
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Resources.resx</DependentUpon>
+      <DesignTime>True</DesignTime>
     </Compile>
     <None Include="app.config" />
     <None Include="Properties\Settings.settings">
@@ -85,6 +86,18 @@
       <Project>{41A7CB77-C30B-4281-A9BF-CFAD2B63DD4E}</Project>
       <Name>AppHarbor.Sdk</Name>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\RedIcon.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\RedButton.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\DarkGreenButton.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Resources\OrangeButton.ico" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

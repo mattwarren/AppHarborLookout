@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
 using System.Drawing;
 using System.Linq;
 using System.Security.Authentication;
-using System.Text;
 using System.Windows.Forms;
 using AppHarbor;
 using AppHarborLookout.Properties;
@@ -32,6 +28,10 @@ namespace AppHarborLookout
 #endif
             timer.Tick += (sender, e) =>
             {
+                timer.Stop();
+
+                //Settings stored in C:\Users\matt.warren\AppData\Local\AppHarborLookout
+                //App authorized at https://appharbor.com/user/authorizations
                 if (String.IsNullOrWhiteSpace(Settings.Default.AccessToken))
                 {
                     string clientId = "49e17241-0631-47ec-bbf5-eface6552ea8";
@@ -45,19 +45,37 @@ namespace AppHarborLookout
 
                 var authInfo = new AuthInfo(Settings.Default.AccessToken, Settings.Default.TokenType);
                 var client = new AppHarborClient(authInfo);
+                if (client.GetApplications() == null)
+                    return;
+                
                 foreach (var application in client.GetApplications())
                 {
                     var builds = client.GetBuilds(application.Slug);
-                    var infoMsg = String.Format("{0}: {1}: {2}", DateTime.Now.ToString("hh:mm.ss tt"), application.Name, String.Join(", ", builds.Select(b => new { b.Deployed, b.Status })));
+                    var now = DateTime.Now;
+                    var infoMsg = String.Format("{0}: {1}: {2}", now.ToString("hh:mm.ss tt"), application.Name,
+                                                String.Join(", ", builds.Select(b => new {b.Deployed, b.Status})));
+
+                    switch (now.Ticks % 3)
+                    {
+                        case 0:
+                            notifyIcon.Icon = Resources.RedButton;
+                            break;
+                        case 1:
+                            notifyIcon.Icon = Resources.OrangeButton;
+                            break;
+                        case 2:
+                        default:
+                            notifyIcon.Icon = Resources.GreenButton;
+                            break;
+                    }
 
                     if (_formHasBeenShown)
                     {
-                        infoLabel.Invoke((Action) delegate
-                        {
-                            infoLabel.Text = infoMsg;
-                        });
+                        infoLabel.Invoke((Action) delegate { infoLabel.Text = infoMsg; });
                     }
                 }
+
+                timer.Start();
             };
 
             mainScreenToolStripMenuItem.Click += (sender, e) => ToggleMainScreen();

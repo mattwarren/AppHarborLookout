@@ -125,7 +125,7 @@ namespace AppHarbor
                             break;
                         }
 
-                        context.Response.StatusCode = 404;                                            
+                        context.Response.StatusCode = 404;
                         context.Response.Close();
                     }
                 }
@@ -138,7 +138,8 @@ namespace AppHarbor
 <!DOCTYPE html>
 <html>
 <head></head>
-<body onload=""closeThis();"">
+<!-- <body onload=""closeThis();""> -->
+<body>
     <h1>Authorization for Notifier App was Successfull</h1>
     <p>You can now close this window</p>
     <script type=""text/javascript"">
