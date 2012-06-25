@@ -1,11 +1,11 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual C# Express 2010
+# Visual Studio 2010
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppHarbor.ConsoleSample", "AppHarbor.ConsoleSample\AppHarbor.ConsoleSample.csproj", "{936802F6-4809-4344-8B49-9DAB95047013}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppHarbor.Sdk", "AppHarbor.Sdk\AppHarbor.Sdk.csproj", "{41A7CB77-C30B-4281-A9BF-CFAD2B63DD4E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppHarborLookout", "AppHarborLookout\AppHarborLookout.csproj", "{9776F71C-C38E-456B-AE36-84B1FF98F1DF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppHarbor.Lookout", "AppHarbor.Lookout\AppHarbor.Lookout.csproj", "{9776F71C-C38E-456B-AE36-84B1FF98F1DF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
