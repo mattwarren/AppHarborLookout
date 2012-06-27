@@ -5,6 +5,7 @@ using System.Security.Authentication;
 using System.Windows.Forms;
 using AppHarbor;
 using AppHarborLookout.Properties;
+using System.Diagnostics;
 
 namespace AppHarborLookout
 {
@@ -30,53 +31,84 @@ namespace AppHarborLookout
             {
                 timer.Stop();
 
-                //Settings stored in C:\Users\matt.warren\AppData\Local\AppHarborLookout
-                //App authorized at https://appharbor.com/user/authorizations
-                if (String.IsNullOrWhiteSpace(Settings.Default.AccessToken))
+                try
                 {
-                    string clientId = "49e17241-0631-47ec-bbf5-eface6552ea8";
-                    string clientSecret = "1d4e4d1b-9798-4bd3-bd86-f17ca00505e3";
+                    //Settings stored in C:\Users\matt.warren\AppData\Local\AppHarborLookout
+                    //App authorized at https://appharbor.com/user/authorizations
+                    if (String.IsNullOrWhiteSpace(Settings.Default.AccessToken))
+                    {
+                        string clientId = "49e17241-0631-47ec-bbf5-eface6552ea8";
+                        string clientSecret = "1d4e4d1b-9798-4bd3-bd86-f17ca00505e3";
 
-                    var savedAuthInfo = GetAuthorization(clientId, clientSecret);
-                    Settings.Default.AccessToken = savedAuthInfo.AccessToken;
-                    Settings.Default.TokenType = savedAuthInfo.TokenType;
-                    Settings.Default.Save();
+                        var savedAuthInfo = GetAuthorization(clientId, clientSecret);
+                        Settings.Default.AccessToken = savedAuthInfo.AccessToken;
+                        Settings.Default.TokenType = savedAuthInfo.TokenType;
+                        Settings.Default.Save();
+                    }
+
+                    var authInfo = new AuthInfo(Settings.Default.AccessToken, Settings.Default.TokenType);
+                    var client = new AppHarborClient(authInfo);
+                    if (client.GetApplications() == null)
+                        return;
+
+                    foreach (var application in client.GetApplications())
+                    {
+                        var builds = client.GetBuilds(application.Slug);
+                        var build = builds.FirstOrDefault();
+                        if (build == null)
+                            continue;
+
+                        var errors = client.GetErrors(application.Slug);
+                        var tests = client.GetTests(application.Slug, build.Id);
+
+                        var now = DateTime.Now;
+                        var infoMsg = String.Format("{0}: {1}: {2}", now.ToString("hh:mm.ss tt"), application.Name,
+                                                    String.Join(", ", builds.Select(b => new { b.Deployed, b.Status })));
+
+                        //Status can be: "Succeeded", "Failed", 
+
+                        switch (now.Ticks % 3)
+                        {
+                            case 0:
+                                notifyIcon.Icon = Resources.RedButton;
+                                break;
+                            case 1:
+                                notifyIcon.Icon = Resources.OrangeButton;
+                                break;
+                            case 2:
+                            default:
+                                notifyIcon.Icon = Resources.GreenButton;
+                                break;
+                        }
+
+                        if (_formHasBeenShown)
+                        {
+                            infoLabel.Invoke((Action)delegate
+                            {
+                                infoLabel.Text = infoMsg;
+                                var url = build.Url.AbsoluteUri;
+                                buildUrlLinkLabel.Links.Remove(buildUrlLinkLabel.Links[0]);                                
+                                buildUrlLinkLabel.Links.Add(0, buildUrlLinkLabel.Text.Length, url);
+
+                                //var logsUrl = build.TestsUrl
+                            });
+                        }
+                    }
                 }
-
-                var authInfo = new AuthInfo(Settings.Default.AccessToken, Settings.Default.TokenType);
-                var client = new AppHarborClient(authInfo);
-                if (client.GetApplications() == null)
-                    return;
-                
-                foreach (var application in client.GetApplications())
+                catch (Exception ex)
                 {
-                    var builds = client.GetBuilds(application.Slug);
-                    var now = DateTime.Now;
-                    var infoMsg = String.Format("{0}: {1}: {2}", now.ToString("hh:mm.ss tt"), application.Name,
-                                                String.Join(", ", builds.Select(b => new {b.Deployed, b.Status})));
-
-                    switch (now.Ticks % 3)
-                    {
-                        case 0:
-                            notifyIcon.Icon = Resources.RedButton;
-                            break;
-                        case 1:
-                            notifyIcon.Icon = Resources.OrangeButton;
-                            break;
-                        case 2:
-                        default:
-                            notifyIcon.Icon = Resources.GreenButton;
-                            break;
-                    }
-
-                    if (_formHasBeenShown)
-                    {
-                        infoLabel.Invoke((Action) delegate { infoLabel.Text = infoMsg; });
-                    }
+                    infoLabel.Text = ex.Message;
                 }
 
                 timer.Start();
             };
+
+            buildUrlLinkLabel.LinkClicked += (sender, e) =>
+                {
+                    var url = e.Link.LinkData as String;
+                    if (url != null)
+                        Process.Start(url);                    
+                };
 
             mainScreenToolStripMenuItem.Click += (sender, e) => ToggleMainScreen();
 
@@ -105,7 +137,7 @@ namespace AppHarborLookout
             closeLinkLabel.Click += (sender, e) => HideMainScreen();
         }
 
-        private static AuthInfo GetAuthorization(string clientId, string clientSecret)
+        private AuthInfo GetAuthorization(string clientId, string clientSecret)
         {
             try
             {
@@ -140,9 +172,11 @@ namespace AppHarborLookout
         }
 
         private void ShowMainScreen()
-        {
-            //TODO need a better way of doing this!!!!
-            Location = new Point(Cursor.Position.X - Width, Cursor.Position.Y - Height - 15);
+        {            
+            var cursorPosn = new Point(Cursor.Position.X, Cursor.Position.Y);            
+            var mouseLocation = new Point(cursorPosn.X - Width, cursorPosn.Y - Height - 15);
+            StartPosition = FormStartPosition.Manual;
+            Location = mouseLocation;
             _allowVisible = true;
             _isVisible = true;
             _formHasBeenShown = true;
@@ -164,21 +198,6 @@ namespace AppHarborLookout
                 e.Cancel = true;
             }
             base.OnFormClosing(e);
-        }
-
-        //private void showToolStripMenuItem_Click(object sender, EventArgs e)
-        //{
-        //    //_allowVisible = true;
-        //    //mLoadFired = true;
-        //    Show();
-        //}
-
-        //private void exitToolStripMenuItem_Click(object sender, EventArgs e)
-        //{
-        //    //_allowClose = _allowVisible = true;
-        //    //if (!mLoadFired) 
-        //    //    Show();
-        //    Close();
-        //}
+        }       
     }
 }
