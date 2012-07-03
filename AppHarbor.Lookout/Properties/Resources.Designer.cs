@@ -60,6 +60,13 @@ namespace AppHarborLookout.Properties {
             }
         }
         
+        internal static System.Drawing.Icon GrayButton {
+            get {
+                object obj = ResourceManager.GetObject("GrayButton", resourceCulture);
+                return ((System.Drawing.Icon)(obj));
+            }
+        }
+        
         internal static System.Drawing.Icon GreenButton {
             get {
                 object obj = ResourceManager.GetObject("GreenButton", resourceCulture);

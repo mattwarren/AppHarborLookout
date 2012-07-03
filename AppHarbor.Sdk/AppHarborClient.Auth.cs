@@ -140,8 +140,9 @@ namespace AppHarbor
 <head></head>
 <!-- <body onload=""closeThis();""> -->
 <body>
-    <h1>Authorization for Notifier App was Successfull</h1>
-    <p>You can now close this window</p>
+    <h1>Authorization for AppHarbor Lookout was Successfull</h1>
+    <p>Note: you can revoke this authorisation <a href =""https://appharbor.com/user/authorizations"">at any time</a>
+    <!-- <p>You can now close this window</p> -->
     <script type=""text/javascript"">
         function closeMe() { window.close(); } 
         function closeThis() { window.close(); }

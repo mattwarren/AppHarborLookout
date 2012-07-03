@@ -16,7 +16,7 @@ namespace AppHarborLookout
         {
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new MainForm());
+            Application.Run(new AppHarborForm());
 
             Application.ThreadException += (sender, e) =>
                 {
