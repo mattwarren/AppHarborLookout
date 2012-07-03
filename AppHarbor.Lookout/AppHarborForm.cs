@@ -40,6 +40,21 @@ namespace AppHarborLookout
 
             tabControl.TabPages.Remove(previousBuildsTabPage);
 
+            //http://stackoverflow.com/questions/2154154/datagridview-how-to-set-column-width
+            DataGridViewTextBoxColumn subTitleColumn = new DataGridViewTextBoxColumn();
+            subTitleColumn.HeaderText = "Subtitle";
+            subTitleColumn.MinimumWidth = 50;
+            subTitleColumn.FillWeight = 65;
+            subTitleColumn.DataPropertyName = "Date";
+
+            DataGridViewTextBoxColumn summaryColumn = new DataGridViewTextBoxColumn();
+            summaryColumn.HeaderText = "Summary";
+            summaryColumn.MinimumWidth = 50;
+            summaryColumn.FillWeight = 200;
+            summaryColumn.DataPropertyName = "Value";
+
+            dataGridViewErrors.Columns.AddRange(new DataGridViewTextBoxColumn[] { subTitleColumn, summaryColumn });
+
             //Make the timer fire straight-away, the 1st time
             timer = new Timer {Enabled = true, Interval = 500};            
             //timer.Tick += (sender, e) =>
@@ -63,19 +78,22 @@ namespace AppHarborLookout
 
                     var builds = client.GetBuilds(application.Slug);
                     var errors = client.GetErrors(application.Slug);
-                    var errorInfo = errors.Take(10).Select(x => new 
-                    { 
-                        //2012-07-03T00:36:44.292Z
-                        Date = ParseDate(x.Date).ToString(),
-                        Value = x.Exception.Message
-                    }).ToList();
-                    if (_formHasBeenShown)
+                    if (errors != null && errors.Count() > 0)
                     {
-                        dataGridViewErrors.Invoke((Action)delegate
+                        var errorInfo = errors.Take(10).Select(x => new
                         {
-                            dataGridViewErrors.DataSource = errorInfo;
-                            dataGridViewErrors.Show();
-                        });
+                            //2012-07-03T00:36:44.292Z
+                            Date = ParseDate(x.Date).ToString(),
+                            Value = x.Exception.Message
+                        }).ToList();
+                        if (_formHasBeenShown)
+                        {
+                            dataGridViewErrors.Invoke((Action)delegate
+                            {
+                                dataGridViewErrors.DataSource = errorInfo;
+                                dataGridViewErrors.Show();
+                            });
+                        }
                     }
 
                     //var tests = client.GetTests(application.Slug, build.Id);
