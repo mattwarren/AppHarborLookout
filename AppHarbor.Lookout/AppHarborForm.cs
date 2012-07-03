@@ -63,7 +63,7 @@ namespace AppHarborLookout
 
                     var builds = client.GetBuilds(application.Slug);
                     var errors = client.GetErrors(application.Slug);
-                    var errorInfo = errors.Select(x => new 
+                    var errorInfo = errors.Take(10).Select(x => new 
                     { 
                         //2012-07-03T00:36:44.292Z
                         Date = ParseDate(x.Date).ToString(),
