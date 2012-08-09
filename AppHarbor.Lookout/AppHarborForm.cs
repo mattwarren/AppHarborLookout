@@ -342,6 +342,8 @@ Updated at: {1}",
         {            
             var cursorPosn = new Point(Cursor.Position.X, Cursor.Position.Y);            
             var mouseLocation = new Point(cursorPosn.X - Width, cursorPosn.Y - Height - 15);
+            if (mouseLocation.Y < 15)
+                mouseLocation.Y = 15;
             StartPosition = FormStartPosition.Manual;
             Location = mouseLocation;
             _allowVisible = true;
