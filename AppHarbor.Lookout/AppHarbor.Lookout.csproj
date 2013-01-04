@@ -55,8 +55,11 @@
     <Compile Include="AppHarborForm.Designer.cs">
       <DependentUpon>AppHarborForm.cs</DependentUpon>
     </Compile>
+    <Compile Include="BuildInfo.cs" />
+    <Compile Include="BuildStatusInterpreter.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="BuildProcessor.cs" />
     <EmbeddedResource Include="AppHarborForm.resx">
       <DependentUpon>AppHarborForm.cs</DependentUpon>
     </EmbeddedResource>
