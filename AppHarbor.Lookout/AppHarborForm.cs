@@ -161,8 +161,8 @@ namespace AppHarborLookout
 
     private void ExitLookoutApp(object sender, EventArgs e)
     {
-      _allowClose = true;
-      Close();
+      this._allowClose = true;
+      this.Close();
       Environment.Exit(1);
     }
 
@@ -170,7 +170,7 @@ namespace AppHarborLookout
     {
       if (e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Left)
       {
-        ToggleMainScreen();
+        this.ToggleMainScreen();
       }
     }
     /// <summary>
@@ -243,7 +243,7 @@ Updated at: {1}",
     /// </summary>
     private void ToggleMainScreen()
     {
-      if (_isVisible)
+      if (this._isVisible)
         HideMainScreen();
       else
         ShowMainScreen();
@@ -337,9 +337,9 @@ Updated at: {1}",
 
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
-      if (!_allowClose)
+      if (!this._allowClose)
       {
-        Hide();
+        this.Hide();
         e.Cancel = true;
       }
 
@@ -348,12 +348,12 @@ Updated at: {1}",
 
     private void OnBuildAuthorizationError(string message)
     {
-      notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout - Authorisation error", message, ToolTipIcon.Error);
+      this.notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout - Authorisation error", message, ToolTipIcon.Error);
     }
 
     private void OnBuildGeneralError(string message)
     {
-      notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout - Error", message, ToolTipIcon.Error);
+      this.notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout - Error", message, ToolTipIcon.Error);
     }
   }
 }
