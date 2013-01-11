@@ -22,3 +22,4 @@ Pending
 * TODO: Beautify UI (text clogs up)
 * TODO: Add more tests
 * TODO: Fix authorization (make it automatic on app startup)
+* TODO: More refactoring
