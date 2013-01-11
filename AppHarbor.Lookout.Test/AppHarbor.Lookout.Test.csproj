@@ -35,19 +35,19 @@
     <Reference Include="Fasterflect">
       <HintPath>..\packages\fasterflect.2.1.2\lib\net45\Fasterflect.dll</HintPath>
     </Reference>
+    <Reference Include="NSubstitute">
+      <HintPath>..\packages\NSubstitute.1.4.3.0\lib\NET40\NSubstitute.dll</HintPath>
+    </Reference>
     <Reference Include="nunit.framework">
       <HintPath>..\packages\NUnit.2.6.2\lib\nunit.framework.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Drawing" />
-    <Reference Include="System.Xml.Linq" />
-    <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="System.Data" />
-    <Reference Include="System.Xml" />
+    <Reference Include="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="BuildInfoTest.cs" />
     <Compile Include="BuildStatusInterpreterTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
@@ -58,6 +58,10 @@
     <ProjectReference Include="..\AppHarbor.Lookout\AppHarbor.Lookout.csproj">
       <Project>{9776f71c-c38e-456b-ae36-84b1ff98f1df}</Project>
       <Name>AppHarbor.Lookout</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\AppHarbor.Sdk\AppHarbor.Sdk.csproj">
+      <Project>{41a7cb77-c30b-4281-a9bf-cfad2b63dd4e}</Project>
+      <Name>AppHarbor.Sdk</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

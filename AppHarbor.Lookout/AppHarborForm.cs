@@ -142,8 +142,8 @@ namespace AppHarborLookout
             lblDeployTime.Text = IsDeployed(build) ? GetDateStr(build.Deployed) : "NOT DEPLOYED";
             lblDeployTime.ForeColor = IsDeployed(build) ? Color.Green : Color.Orange;
             SetupUrl(buildLnk, build.Url.AbsoluteUri);
-            SetupUrl(applicationLnk, String.Format("http://{0}.apphb.com", appName.ToLowerInvariant()));
-            lblCommitMsg.Text = build.Commit.Message;
+            SetupUrl(applicationLnk, String.Format("http://{0}.apphb.com", appName.ToLowerInvariant()));            
+            txtCommitMsg.Text = build.Commit.Message;
             lblStatus.ForeColor = statusProc.GetBuildStatusColor(status);
           }));
     }
@@ -165,6 +165,7 @@ namespace AppHarborLookout
       Close();
       Environment.Exit(1);
     }
+
     private void ProcessTrayIconClick(object sender, EventArgs e)
     {
       if (e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Left)
@@ -179,7 +180,7 @@ namespace AppHarborLookout
     /// <returns>A date time string in dd/MM hh:mm format</returns>
     private static string GetDateStr(DateTime date)
     {
-      return date.ToString("dd/MM hh:mm");
+      return date.ToString("MMM-dd hh:mm tt");
     }
 
     /// <summary>

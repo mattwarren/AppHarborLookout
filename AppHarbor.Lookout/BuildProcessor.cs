@@ -12,7 +12,7 @@ namespace AppHarborLookout
 {
   public class BuildProcessor
   {
-    private Timer timer;
+    private readonly Timer timer;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="BuildProcessor" /> class.
@@ -90,12 +90,22 @@ namespace AppHarborLookout
         var authInfo = new AuthInfo(Settings.Default.AccessToken, Settings.Default.TokenType);
         var client = new AppHarborClient(authInfo);
         IEnumerable<Application> applications = client.GetApplications();
-        if (IsNullOrEmpty(applications))
-        {
-          return;
-        }
 
-        RaiseBuildProcessedEvent(new BuildInfo(applications, client));
+        if (IsNullOrEmpty(applications))
+          throw new NullReferenceException("Client Error: Unable to obtain your applications from the server. "+
+                                                     "\n\tYou might need re-authorize and/or 'Run as Administrator'.");
+
+        BuildInfo buildInfo = new BuildInfo(applications, client);
+
+        if (buildInfo.LatestBuild == null)
+          throw new NullReferenceException("Lookout Error: Unable to obtain latest build from server." + 
+                                                      "\n\tThere might be high network latency.");
+
+        RaiseBuildProcessedEvent(buildInfo);                  
+      }
+      catch (NullReferenceException nullEx)
+      {
+        RaiseGeneralErrorEvent(nullEx.Message);
       }
       catch (System.Exception ex)
       {

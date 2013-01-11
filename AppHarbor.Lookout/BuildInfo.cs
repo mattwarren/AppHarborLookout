@@ -1,39 +1,45 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics.Contracts;
 using System.Linq;
 using AppHarbor;
 using AppHarbor.Model;
 
-namespace AppHarborLookout {
-  public class BuildInfo {
+namespace AppHarborLookout
+{
+  public class BuildInfo
+  {
 
-    private AppHarborClient mClient;
-    private IEnumerable<Application> mApplications;
-    private string mApplicationName;
-    private Build mLatestBuild = null;
-    private string mLatestAppId = null;
-    private IEnumerable<Error> mErrors;
-    private bool mCacheObtained = false;
+    private readonly AppHarborClient _Client;
+    private readonly IEnumerable<Application> _Applications;
+    private string _ApplicationName;
+    private Build _LatestBuild;
+    private string _LatestAppId;
+    private IEnumerable<Error> _Errors;
+    private bool _CacheObtained;
 
-    public BuildInfo(IEnumerable<Application> applications, AppHarborClient client) {
+    public BuildInfo(IEnumerable<Application> applications, AppHarborClient client)
+    {
       Contract.Requires(applications != null);
       Contract.Requires(client != null);
 
-      this.mApplications = applications;
-      this.mClient = client;      
-    }    
+      this._Applications = applications;
+      this._Client = client;
+    }
 
     /// <summary>
     /// Gets the name of the application.
     /// </summary>
     /// <value>The name of the application.</value>
-    public string ApplicationName {
-      get {        
-        if(!mCacheObtained) {          
-          UpdateCache();
-        }
+    public string ApplicationName
+    {
+      get
+      {
+        if (!this._CacheObtained)
+          this.UpdateCache();
 
-        return mApplicationName;
+
+        return _ApplicationName;
       }
     }
 
@@ -41,13 +47,15 @@ namespace AppHarborLookout {
     /// Gets the latest build.
     /// </summary>
     /// <value>The latest build.</value>
-    public Build LatestBuild {
-      get {
-        if(!mCacheObtained) {
-          UpdateCache();
-        }
+    public Build LatestBuild
+    {
+      get
+      {
+        if (!this._CacheObtained)
+          this.UpdateCache();
 
-        return mLatestBuild;
+
+        return _LatestBuild;
       }
     }
 
@@ -55,36 +63,41 @@ namespace AppHarborLookout {
     /// Gets the errors.
     /// </summary>
     /// <value>The errors.</value>
-    public IEnumerable<Error> Errors {
-      get {
-        if(!mCacheObtained) {
-          UpdateCache();
-        }
+    public IEnumerable<Error> Errors
+    {
+      get
+      {
+        if (!this._CacheObtained)
+          this.UpdateCache();
 
-        return this.mErrors;
+        return this._Errors;
       }
     }
 
     /// <summary>
     /// Updates the cache.
     /// </summary>
-    private void UpdateCache() {
-      var latestApp = mApplications.Select(app => new {
+    private void UpdateCache()
+    {
+      if (!this._Applications.Any())
+        return;
+
+      var appBuilds = this._Applications.Select(app => new
+      {
         AppName = app.Name,
         AppId = app.Slug,
-        LatestBuild = mClient.GetBuilds(app.Slug)
+        LatestBuild = this._Client.GetBuilds(app.Slug)
                             .OrderByDescending(build => build.Created)
                             .FirstOrDefault()
-      })
-      .OrderByDescending(app => app.LatestBuild.Created)
-      .FirstOrDefault();
+      });      
 
-      if(latestApp != null) {
-        this.mApplicationName = latestApp.AppName;
-        this.mLatestAppId = latestApp.AppId;
-        this.mLatestBuild = latestApp.LatestBuild;
-        this.mErrors = mClient.GetErrors(this.mLatestAppId);
-      }
+      var appBuild = appBuilds.OrderByDescending(app => app.LatestBuild.Created).First();
+      this._ApplicationName = appBuild.AppName;
+      this._LatestAppId = appBuild.AppId;
+      this._LatestBuild = appBuild.LatestBuild;
+      this._Errors = _Client.GetErrors(appBuild.AppId);
+      this._CacheObtained = true;
+
     }
   }
 }
