@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.Linq;
 using System.Security.Authentication;
 using System.Timers;
@@ -112,8 +113,10 @@ namespace AppHarborLookout
     /// </summary>
     public void UpdateAuthorizationDetails()
     {
-      string clientId = "0b2b327d-3ca1-493c-a6b1-5fce5b0f376c";//"49e17241-0631-47ec-bbf5-eface6552ea8";
-      string clientSecret = "61026cc0-7bf3-4baf-8833-db4f42a59246";//1d4e4d1b-9798-4bd3-bd86-f17ca00505e3";
+      // These settings are configured with the AppSettings 
+      // configuration values in the App.config file
+      string clientId = ConfigurationManager.AppSettings["ClientId"];
+      string clientSecret = ConfigurationManager.AppSettings["ClientSecret"];
 
       Tuple<AuthInfo, string> result = GetAuthorization(clientId, clientSecret);
       AuthInfo credentials = result.Item1;
