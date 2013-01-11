@@ -48,7 +48,7 @@
             System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
             this.notifyIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this.contextMenuStrip = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.mainScreenToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.mainToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.reAuthoriseToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exitToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.closeLinkLabel = new System.Windows.Forms.LinkLabel();
@@ -58,14 +58,14 @@
             this.tabControl = new System.Windows.Forms.TabControl();
             this.currentInfoTabPage = new System.Windows.Forms.TabPage();
             this.pictureBoxLoadingSpinner = new System.Windows.Forms.PictureBox();
-            this.applicationUrlLinkLabel = new System.Windows.Forms.LinkLabel();
-            this.labelCommit = new System.Windows.Forms.Label();
-            this.labelDeployed = new System.Windows.Forms.Label();
-            this.labelStatus = new System.Windows.Forms.Label();
-            this.labelTime = new System.Windows.Forms.Label();
-            this.labelAppName = new System.Windows.Forms.Label();
-            this.logUrlLinkLabel = new System.Windows.Forms.LinkLabel();
-            this.buildUrlLinkLabel = new System.Windows.Forms.LinkLabel();
+            this.applicationLnk = new System.Windows.Forms.LinkLabel();
+            this.lblCommitMsg = new System.Windows.Forms.Label();
+            this.lblDeployTime = new System.Windows.Forms.Label();
+            this.lblStatus = new System.Windows.Forms.Label();
+            this.lblCreateTime = new System.Windows.Forms.Label();
+            this.lblAppName = new System.Windows.Forms.Label();
+            this.logLnk = new System.Windows.Forms.LinkLabel();
+            this.buildLnk = new System.Windows.Forms.LinkLabel();
             this.previousBuildsTabPage = new System.Windows.Forms.TabPage();
             this.errorMessageTabPage = new System.Windows.Forms.TabPage();
             this.dataGridViewErrors = new System.Windows.Forms.DataGridView();
@@ -145,7 +145,7 @@
             // 
             this.contextMenuStrip.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.contextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.mainScreenToolStripMenuItem,
+            this.mainToolStripMenuItem,
             toolStripSeparator,
             this.reAuthoriseToolStripMenuItem,
             this.exitToolStripMenuItem});
@@ -154,10 +154,10 @@
             // 
             // mainScreenToolStripMenuItem
             // 
-            this.mainScreenToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.mainScreenToolStripMenuItem.Name = "mainScreenToolStripMenuItem";
-            this.mainScreenToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
-            this.mainScreenToolStripMenuItem.Text = "Main Screen";
+            this.mainToolStripMenuItem.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.mainToolStripMenuItem.Name = "mainScreenToolStripMenuItem";
+            this.mainToolStripMenuItem.Size = new System.Drawing.Size(151, 22);
+            this.mainToolStripMenuItem.Text = "Main Screen";
             // 
             // reAuthoriseToolStripMenuItem
             // 
@@ -247,19 +247,19 @@
             // currentInfoTabPage
             // 
             this.currentInfoTabPage.Controls.Add(this.pictureBoxLoadingSpinner);
-            this.currentInfoTabPage.Controls.Add(this.applicationUrlLinkLabel);
-            this.currentInfoTabPage.Controls.Add(this.labelCommit);
+            this.currentInfoTabPage.Controls.Add(this.applicationLnk);
+            this.currentInfoTabPage.Controls.Add(this.lblCommitMsg);
             this.currentInfoTabPage.Controls.Add(label6);
-            this.currentInfoTabPage.Controls.Add(this.labelDeployed);
+            this.currentInfoTabPage.Controls.Add(this.lblDeployTime);
             this.currentInfoTabPage.Controls.Add(label5);
-            this.currentInfoTabPage.Controls.Add(this.labelStatus);
-            this.currentInfoTabPage.Controls.Add(this.labelTime);
-            this.currentInfoTabPage.Controls.Add(this.labelAppName);
+            this.currentInfoTabPage.Controls.Add(this.lblStatus);
+            this.currentInfoTabPage.Controls.Add(this.lblCreateTime);
+            this.currentInfoTabPage.Controls.Add(this.lblAppName);
             this.currentInfoTabPage.Controls.Add(label3);
             this.currentInfoTabPage.Controls.Add(label2);
             this.currentInfoTabPage.Controls.Add(label1);
-            this.currentInfoTabPage.Controls.Add(this.logUrlLinkLabel);
-            this.currentInfoTabPage.Controls.Add(this.buildUrlLinkLabel);
+            this.currentInfoTabPage.Controls.Add(this.logLnk);
+            this.currentInfoTabPage.Controls.Add(this.buildLnk);
             this.currentInfoTabPage.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.currentInfoTabPage.Location = new System.Drawing.Point(4, 23);
             this.currentInfoTabPage.Name = "currentInfoTabPage";
@@ -280,77 +280,77 @@
             // 
             // applicationUrlLinkLabel
             // 
-            this.applicationUrlLinkLabel.AutoSize = true;
-            this.applicationUrlLinkLabel.Enabled = false;
-            this.applicationUrlLinkLabel.Location = new System.Drawing.Point(174, 11);
-            this.applicationUrlLinkLabel.Name = "applicationUrlLinkLabel";
-            this.applicationUrlLinkLabel.Size = new System.Drawing.Size(139, 17);
-            this.applicationUrlLinkLabel.TabIndex = 16;
-            this.applicationUrlLinkLabel.TabStop = true;
-            this.applicationUrlLinkLabel.Text = "Go to your application";
+            this.applicationLnk.AutoSize = true;
+            this.applicationLnk.Enabled = false;
+            this.applicationLnk.Location = new System.Drawing.Point(174, 11);
+            this.applicationLnk.Name = "applicationUrlLinkLabel";
+            this.applicationLnk.Size = new System.Drawing.Size(139, 17);
+            this.applicationLnk.TabIndex = 16;
+            this.applicationLnk.TabStop = true;
+            this.applicationLnk.Text = "Go to your application";
             // 
             // labelCommit
             // 
-            this.labelCommit.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelCommit.Location = new System.Drawing.Point(95, 163);
-            this.labelCommit.Name = "labelCommit";
-            this.labelCommit.Size = new System.Drawing.Size(218, 17);
-            this.labelCommit.TabIndex = 15;
+            this.lblCommitMsg.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblCommitMsg.Location = new System.Drawing.Point(95, 163);
+            this.lblCommitMsg.Name = "labelCommit";
+            this.lblCommitMsg.Size = new System.Drawing.Size(218, 17);
+            this.lblCommitMsg.TabIndex = 15;
             // 
             // labelDeployed
             // 
-            this.labelDeployed.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelDeployed.Location = new System.Drawing.Point(95, 135);
-            this.labelDeployed.Name = "labelDeployed";
-            this.labelDeployed.Size = new System.Drawing.Size(218, 17);
-            this.labelDeployed.TabIndex = 13;
+            this.lblDeployTime.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblDeployTime.Location = new System.Drawing.Point(95, 135);
+            this.lblDeployTime.Name = "labelDeployed";
+            this.lblDeployTime.Size = new System.Drawing.Size(218, 17);
+            this.lblDeployTime.TabIndex = 13;
             // 
             // labelStatus
             // 
-            this.labelStatus.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelStatus.ForeColor = System.Drawing.SystemColors.ControlText;
-            this.labelStatus.Location = new System.Drawing.Point(95, 105);
-            this.labelStatus.Name = "labelStatus";
-            this.labelStatus.Size = new System.Drawing.Size(218, 17);
-            this.labelStatus.TabIndex = 11;
+            this.lblStatus.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblStatus.ForeColor = System.Drawing.SystemColors.ControlText;
+            this.lblStatus.Location = new System.Drawing.Point(95, 105);
+            this.lblStatus.Name = "labelStatus";
+            this.lblStatus.Size = new System.Drawing.Size(218, 17);
+            this.lblStatus.TabIndex = 11;
             // 
             // labelTime
             // 
-            this.labelTime.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelTime.Location = new System.Drawing.Point(95, 75);
-            this.labelTime.Name = "labelTime";
-            this.labelTime.Size = new System.Drawing.Size(218, 17);
-            this.labelTime.TabIndex = 10;
+            this.lblCreateTime.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblCreateTime.Location = new System.Drawing.Point(95, 75);
+            this.lblCreateTime.Name = "labelTime";
+            this.lblCreateTime.Size = new System.Drawing.Size(218, 17);
+            this.lblCreateTime.TabIndex = 10;
             // 
             // labelAppName
             // 
-            this.labelAppName.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.labelAppName.Location = new System.Drawing.Point(95, 45);
-            this.labelAppName.Name = "labelAppName";
-            this.labelAppName.Size = new System.Drawing.Size(218, 17);
-            this.labelAppName.TabIndex = 9;
+            this.lblAppName.Font = new System.Drawing.Font("Segoe UI", 9.75F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.lblAppName.Location = new System.Drawing.Point(95, 45);
+            this.lblAppName.Name = "labelAppName";
+            this.lblAppName.Size = new System.Drawing.Size(218, 17);
+            this.lblAppName.TabIndex = 9;
             // 
             // logUrlLinkLabel
             // 
-            this.logUrlLinkLabel.AutoSize = true;
-            this.logUrlLinkLabel.Enabled = false;
-            this.logUrlLinkLabel.Location = new System.Drawing.Point(17, 238);
-            this.logUrlLinkLabel.Name = "logUrlLinkLabel";
-            this.logUrlLinkLabel.Size = new System.Drawing.Size(114, 17);
-            this.logUrlLinkLabel.TabIndex = 5;
-            this.logUrlLinkLabel.TabStop = true;
-            this.logUrlLinkLabel.Text = "Detailed Build Log";
+            this.logLnk.AutoSize = true;
+            this.logLnk.Enabled = false;
+            this.logLnk.Location = new System.Drawing.Point(17, 238);
+            this.logLnk.Name = "logUrlLinkLabel";
+            this.logLnk.Size = new System.Drawing.Size(114, 17);
+            this.logLnk.TabIndex = 5;
+            this.logLnk.TabStop = true;
+            this.logLnk.Text = "Detailed Build Log";
             // 
             // buildUrlLinkLabel
             // 
-            this.buildUrlLinkLabel.AutoSize = true;
-            this.buildUrlLinkLabel.Enabled = false;
-            this.buildUrlLinkLabel.Location = new System.Drawing.Point(17, 208);
-            this.buildUrlLinkLabel.Name = "buildUrlLinkLabel";
-            this.buildUrlLinkLabel.Size = new System.Drawing.Size(85, 17);
-            this.buildUrlLinkLabel.TabIndex = 4;
-            this.buildUrlLinkLabel.TabStop = true;
-            this.buildUrlLinkLabel.Text = "Full Build Info";
+            this.buildLnk.AutoSize = true;
+            this.buildLnk.Enabled = false;
+            this.buildLnk.Location = new System.Drawing.Point(17, 208);
+            this.buildLnk.Name = "buildUrlLinkLabel";
+            this.buildLnk.Size = new System.Drawing.Size(85, 17);
+            this.buildLnk.TabIndex = 4;
+            this.buildLnk.TabStop = true;
+            this.buildLnk.Text = "Full Build Info";
             // 
             // previousBuildsTabPage
             // 
@@ -449,21 +449,21 @@
         private System.Windows.Forms.ToolStripMenuItem exitToolStripMenuItem;
         private System.Windows.Forms.LinkLabel closeLinkLabel;
         private System.Windows.Forms.Label titleLabel;
-        private System.Windows.Forms.ToolStripMenuItem mainScreenToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem mainToolStripMenuItem;
 		private System.Windows.Forms.ImageList imageList;
 		private System.Windows.Forms.ListView buildsListView;
         private System.Windows.Forms.TabControl tabControl;
         private System.Windows.Forms.TabPage previousBuildsTabPage;
         private System.Windows.Forms.TabPage currentInfoTabPage;
-        private System.Windows.Forms.LinkLabel logUrlLinkLabel;
-        private System.Windows.Forms.LinkLabel buildUrlLinkLabel;
+        private System.Windows.Forms.LinkLabel logLnk;
+        private System.Windows.Forms.LinkLabel buildLnk;
         private System.Windows.Forms.TabPage errorMessageTabPage;
-        private System.Windows.Forms.Label labelStatus;
-        private System.Windows.Forms.Label labelTime;
-        private System.Windows.Forms.Label labelAppName;
-        private System.Windows.Forms.Label labelDeployed;
-        private System.Windows.Forms.Label labelCommit;
-        private System.Windows.Forms.LinkLabel applicationUrlLinkLabel;
+        private System.Windows.Forms.Label lblStatus;
+        private System.Windows.Forms.Label lblCreateTime;
+        private System.Windows.Forms.Label lblAppName;
+        private System.Windows.Forms.Label lblDeployTime;
+        private System.Windows.Forms.Label lblCommitMsg;
+        private System.Windows.Forms.LinkLabel applicationLnk;
         private System.Windows.Forms.PictureBox pictureBoxLoadingSpinner;
         private System.Windows.Forms.DataGridView dataGridViewErrors;
     }
