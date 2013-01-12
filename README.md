@@ -19,7 +19,7 @@ Features
 Pending
 =======
 * TODO: Consult status per application
-* TODO: Beautify UI (text clogs up)
+* TODO: Beautify UI
 * TODO: Add more tests
 * TODO: Fix authorization (make it automatic on app startup)
 * TODO: More refactoring
