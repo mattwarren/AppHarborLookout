@@ -1,7 +1,8 @@
-﻿using System;
+﻿/// <param name="y"></param>
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Globalization;
 using System.Linq;
 using System.Windows.Forms;
 using AppHarbor.Model;
@@ -17,7 +18,8 @@ namespace AppHarborLookout
     private bool _isVisible = false;
     private readonly BuildStatusInterpreter statusProc = new BuildStatusInterpreter();
     private BuildStatus _LastBuildStatus = BuildStatus.Unknown;
-    private readonly BuildProcessor buildProc;
+    private BuildProcessor buildProc;
+    private string _latestBuildId;
 
     public AppHarborForm()
     {
@@ -25,14 +27,35 @@ namespace AppHarborLookout
       notifyIcon.ContextMenuStrip = contextMenuStrip;
       // TODO: Implement previous builds tab page
       tabControl.TabPages.Remove(previousBuildsTabPage);
+      InitializeErrorsTab();
+      InitializeClickEvents();
+      InitializeBuildProcessor();
+      notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout", "Monitoring your builds", ToolTipIcon.Info);
+    }
 
+    /// <summary>
+    /// Initializes the build processor.
+    /// </summary>
+    private void InitializeBuildProcessor()
+    {
+      this.buildProc = new BuildProcessor(5000);
+      this.buildProc.OnBuildProcessed += OnBuildProcessed;
+      this.buildProc.OnGeneralError += OnBuildGeneralError;
+      this.buildProc.OnAuthorizationError += OnBuildAuthorizationError;
+    }
+
+    /// <summary>
+    /// Initializes the errors tab.
+    /// </summary>
+    private void InitializeErrorsTab()
+    {
       var subTitleColumn = new DataGridViewTextBoxColumn()
-      {
-        HeaderText = "Subtitle",
-        MinimumWidth = 50,
-        FillWeight = 65,
-        DataPropertyName = "Date"
-      };
+            {
+              HeaderText = "Subtitle",
+              MinimumWidth = 50,
+              FillWeight = 65,
+              DataPropertyName = "Date"
+            };
 
       var summaryColumn = new DataGridViewTextBoxColumn()
       {
@@ -44,29 +67,25 @@ namespace AppHarborLookout
 
       dataGridViewErrors.Columns
                         .AddRange(new DataGridViewTextBoxColumn[] {
-                          subTitleColumn, 
-                          summaryColumn 
-                        });
+                            subTitleColumn,
+                            summaryColumn
+                          });
+    }
 
-      this.buildProc = new BuildProcessor(1000);
-      this.buildProc.OnBuildProcessed += OnBuildProcessed;
-      this.buildProc.OnGeneralError += OnBuildGeneralError;
-      this.buildProc.OnAuthorizationError += OnBuildAuthorizationError;
-
+    /// <summary>
+    /// Initializes the click events.
+    /// </summary>
+    private void InitializeClickEvents()
+    {
       buildLnk.LinkClicked += ProcessLinkClick;
       logLnk.LinkClicked += ProcessLinkClick;
       applicationLnk.LinkClicked += ProcessLinkClick;
+      closeLinkLabel.Click += (sender, e) => HideMainScreen();
 
       mainToolStripMenuItem.Click += (sender, e) => ToggleMainScreen();
-
       reAuthoriseToolStripMenuItem.Click += (sender, e) => this.buildProc.UpdateAuthorizationDetails();
-
-      exitToolStripMenuItem.Click += ExitLookoutApp;
-
-      notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout", "Monitoring your builds", ToolTipIcon.Info);
+      exitToolStripMenuItem.Click += ExitApp;
       notifyIcon.Click += ProcessTrayIconClick;
-
-      closeLinkLabel.Click += (sender, e) => HideMainScreen();
     }
 
     /// <summary>
@@ -75,29 +94,11 @@ namespace AppHarborLookout
     /// <param name="info">The build info.</param>
     private void OnBuildProcessed(BuildInfo info)
     {
-      if (info.Errors != null && info.Errors.Count() > 0)
-      {
-        var errorInfo = info.Errors.Select(x => new
-        {
-          Date = ParseDate(x.Date).ToString(),
-          Value = GetErrorMessage(x)
-        }).ToList();
-
-        if (this._FormHasBeenShown)
-        {
-          dataGridViewErrors.Invoke((Action)
-              (() =>
-              {
-                dataGridViewErrors.DataSource = errorInfo;
-                dataGridViewErrors.Show();
-              }));
-        }
-      }
-
       if (info.LatestBuild == null)
-      {
         return;
-      }
+
+      if (!IsNewerBuild(info.LatestBuild.Id))
+        return;      
 
       BuildStatus currentBuildStatus = statusProc.GetBuildStatus(info.LatestBuild.Status);
       this.SetNotifyIcon(currentBuildStatus);
@@ -116,12 +117,39 @@ namespace AppHarborLookout
       }
 
       if (this._FormHasBeenShown)
+      {
+        this.ProcessErrors(info.Errors);
         this.UpdateBuildUI(info.ApplicationName, info.LatestBuild, currentBuildStatus);
-
+        this.SetNewerBuildId(info.LatestBuild.Id);
+      }
 
       if (currentBuildStatus == BuildStatus.Succeeded || currentBuildStatus == BuildStatus.Failed)
         this._LastBuildStatus = currentBuildStatus;
+    }
 
+    /// <summary>
+    /// Processes the errors and displays them on UI.
+    /// </summary>
+    /// <param name="errors">The errors to process.</param>
+    private void ProcessErrors(IEnumerable<Error> errors)
+    {
+      if (errors == null || errors.Count() <= 0)
+        return;
+
+      var errorsInfo = errors.Select(error => new
+                      {
+                        Date = error.Date
+                                    .ParseAsDate()
+                                    .FormatDateToStr(),
+                        Value = error.GetErrorMessage()
+                      }).ToList();
+
+      dataGridViewErrors.Invoke((Action)
+          (() =>
+          {
+            dataGridViewErrors.DataSource = errorsInfo;
+            dataGridViewErrors.Show();
+          }));
     }
 
     /// <summary>
@@ -138,14 +166,33 @@ namespace AppHarborLookout
             pictureBoxLoadingSpinner.Hide();
             lblAppName.Text = appName;
             lblStatus.Text = build.Status;
-            lblCreateTime.Text = GetDateStr(build.Created);
-            lblDeployTime.Text = IsDeployed(build) ? GetDateStr(build.Deployed) : "NOT DEPLOYED";
+            lblCreateTime.Text = build.Created.FormatDateToStr();
+            lblDeployTime.Text = IsDeployed(build) ? build.Deployed.FormatDateToStr() : "NOT DEPLOYED";
             lblDeployTime.ForeColor = IsDeployed(build) ? Color.Green : Color.Orange;
-            SetupUrl(buildLnk, build.Url.AbsoluteUri);
-            SetupUrl(applicationLnk, String.Format("http://{0}.apphb.com", appName.ToLowerInvariant()));            
+            buildLnk.SetupUrl(build.Url.AbsoluteUri);
+            applicationLnk.SetupUrl(string.Format("http://{0}.apphb.com", appName.ToLowerInvariant()));
             txtCommitMsg.Text = build.Commit.Message;
             lblStatus.ForeColor = statusProc.GetBuildStatusColor(status);
           }));
+    }
+
+    /// <summary>
+    /// Sets the newer build id.
+    /// </summary>
+    /// <param name="buildId">The build id.</param>
+    private void SetNewerBuildId(string buildId)
+    {
+      this._latestBuildId = buildId;
+    }
+
+    /// <summary>
+    /// Determines whether [is newer build] [the specified latest build].
+    /// </summary>
+    /// <param name="buildId">The build id.</param>
+    /// <returns><c>true</c> if [is newer build] [the specified latest build]; otherwise, <c>false</c>.</returns>
+    private bool IsNewerBuild(string buildId)
+    {
+      return string.IsNullOrEmpty(this._latestBuildId) || buildId != this._latestBuildId;
     }
 
     /// <summary>
@@ -159,13 +206,23 @@ namespace AppHarborLookout
         Process.Start(e.Link.LinkData.ToString());
     }
 
-    private void ExitLookoutApp(object sender, EventArgs e)
+    /// <summary>
+    /// Exits the app.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="e">The <see cref="EventArgs" /> instance containing the event data.</param>
+    private void ExitApp(object sender, EventArgs e)
     {
       this._allowClose = true;
       this.Close();
       Environment.Exit(1);
     }
 
+    /// <summary>
+    /// Processes the tray icon click.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="e">The <see cref="EventArgs" /> instance containing the event data.</param>
     private void ProcessTrayIconClick(object sender, EventArgs e)
     {
       if (e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Left)
@@ -173,14 +230,22 @@ namespace AppHarborLookout
         this.ToggleMainScreen();
       }
     }
+
     /// <summary>
-    /// Gets the date string format for the DateTime object.
+    /// Sets the notify icon.
     /// </summary>
-    /// <param name="date">The date to format.</param>
-    /// <returns>A date time string in dd/MM hh:mm format</returns>
-    private static string GetDateStr(DateTime date)
+    /// <param name="buildStatus">The build status.</param>
+    private void SetNotifyIcon(BuildStatus buildStatus)
     {
-      return date.ToString("MMM-dd hh:mm tt");
+      notifyIcon.Icon = statusProc.GetBuildStatusNotifyIcon(buildStatus);
+      string text = string.Format(
+@"AppHarbor Lookout
+Build Status: {0}
+Updated at: {1}",
+                     buildStatus,
+                     DateTime.Now.ToShortTimeString());
+
+      notifyIcon.Text = string.Join(string.Empty, text.Take(63));
     }
 
     /// <summary>
@@ -194,59 +259,14 @@ namespace AppHarborLookout
     }
 
     /// <summary>
-    /// Sets the notify icon.
-    /// </summary>
-    /// <param name="buildStatus">The build status.</param>
-    private void SetNotifyIcon(BuildStatus buildStatus)
-    {
-      notifyIcon.Icon = statusProc.GetBuildStatusNotifyIcon(buildStatus);
-      var text = String.Format(
-@"AppHarbor Lookout
-Build Status: {0}
-Updated at: {1}",
-               buildStatus, DateTime.Now.ToShortTimeString());
-
-      notifyIcon.Text = string.Join(string.Empty, text.Take(63));
-    }
-
-    private static void SetupUrl(LinkLabel urlLinkLabel, string url)
-    {
-      urlLinkLabel.Links.Remove(urlLinkLabel.Links[0]);
-      urlLinkLabel.Links.Add(0, urlLinkLabel.Text.Length, url);
-      urlLinkLabel.Enabled = true;
-    }
-
-    private static DateTime ParseDate(string rawDate)
-    {
-      DateTime date;
-      var cleanedUpDate = rawDate.Replace("T", " ").Replace("Z", string.Empty);
-      if (DateTime.TryParseExact(
-              cleanedUpDate,
-              "yyyy-MM-dd hh:mm:ss.fff",
-              CultureInfo.InvariantCulture,
-              DateTimeStyles.AssumeUniversal,
-              out date))
-      {
-        return date;
-      }
-
-      return default(DateTime);
-    }
-
-    private static string GetErrorMessage(Error x)
-    {
-      return string.Format("{0} {1}", x.Request_Path, x.Exception != null ? x.Exception.Message : x.Message);
-    }
-
-    /// <summary>
     /// Toggles the visibility of the main screen.
     /// </summary>
     private void ToggleMainScreen()
     {
       if (this._isVisible)
-        HideMainScreen();
+        this.HideMainScreen();
       else
-        ShowMainScreen();
+        this.ShowMainScreen();
     }
 
     /// <summary>
@@ -255,7 +275,7 @@ Updated at: {1}",
     private void HideMainScreen()
     {
       this._isVisible = false;
-      Hide();
+      this.Hide();
     }
 
     /// <summary>
@@ -272,8 +292,8 @@ Updated at: {1}",
       this.StartPosition = FormStartPosition.Manual;
       this.Location = mouseLoc;
 
-      if (!IsFormFullyVisible(this))
-        MoveToVisibleSpace(this);
+      if (!this.IsFormFullyVisible())
+        this.MoveToVisibleSpace();
 
       this._allowVisible = true;
       this._isVisible = true;
@@ -282,59 +302,18 @@ Updated at: {1}",
     }
 
     /// <summary>
-    /// Moves this window to visible space.
+    /// Sets the visible core.
     /// </summary>
-    private void MoveToVisibleSpace(Control form)
-    {
-      Rectangle windowRect = form.DisplayRectangle; // The dimensions of the ctrl
-      windowRect.Y = form.Top; // Add in the real Top and Left Vals
-      windowRect.X = form.Left;
-      Rectangle screenRect = Screen.GetWorkingArea(form); // The Working Area of the screen showing most of the Ctrl
-
-      // Now tweak the ctrl's Top and Left until it's fully visible. 
-      this.Left += Math.Min(0, screenRect.Left + screenRect.Width - form.Left - form.Width);
-      this.Left -= Math.Min(0, form.Left - screenRect.Left);
-      this.Top += Math.Min(0, screenRect.Top + screenRect.Height - form.Top - form.Height);
-      this.Top -= Math.Min(0, form.Top - screenRect.Top);
-    }
-
-    /// <summary>
-    /// Determines whether [is point visible on A screen] [the specified point].
-    /// </summary>
-    /// <param name="point">The point.</param>
-    /// <returns><c>true</c> if [is point visible on A screen] [the specified point]; otherwise, <c>false</c>.</returns>
-    static bool IsPointVisibleOnAScreen(Point point)
-    {
-      foreach (Screen s in Screen.AllScreens)
-      {
-        if (point.X > s.Bounds.Right &&
-          point.X > s.Bounds.Left &&
-          point.Y > s.Bounds.Top &&
-          point.Y < s.Bounds.Bottom)
-          return true;
-      }
-
-      return false;
-    }
-
-    /// <summary>
-    /// Determines whether [is form fully visible] [the specified form].
-    /// </summary>
-    /// <param name="form">The form.</param>
-    /// <returns><c>true</c> if [is form fully visible] [the specified form]; otherwise, <c>false</c>.</returns>
-    static bool IsFormFullyVisible(Form form)
-    {
-      return IsPointVisibleOnAScreen(new Point(form.Left, form.Top)) &&
-             IsPointVisibleOnAScreen(new Point(form.Right, form.Top)) &&
-             IsPointVisibleOnAScreen(new Point(form.Left, form.Bottom)) &&
-             IsPointVisibleOnAScreen(new Point(form.Right, form.Bottom));
-    }
-
+    /// <param name="value">true to make the control visible; otherwise, false.</param>
     protected override void SetVisibleCore(bool value)
     {
-      base.SetVisibleCore(_allowVisible && value);
+      base.SetVisibleCore(this._allowVisible && value);
     }
 
+    /// <summary>
+    /// Raises the <see cref="E:System.Windows.Forms.Form.FormClosing" /> event.
+    /// </summary>
+    /// <param name="e">A <see cref="T:System.Windows.Forms.FormClosingEventArgs" /> that contains the event data.</param>
     protected override void OnFormClosing(FormClosingEventArgs e)
     {
       if (!this._allowClose)
@@ -346,11 +325,19 @@ Updated at: {1}",
       base.OnFormClosing(e);
     }
 
+    /// <summary>
+    /// Called when [build authorization error].
+    /// </summary>
+    /// <param name="message">The message.</param>
     private void OnBuildAuthorizationError(string message)
     {
-      this.notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout - Authorisation error", message, ToolTipIcon.Error);
+      this.notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout - Authorization error", message, ToolTipIcon.Error);
     }
 
+    /// <summary>
+    /// Called when [build general error].
+    /// </summary>
+    /// <param name="message">The message.</param>
     private void OnBuildGeneralError(string message)
     {
       this.notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout - Error", message, ToolTipIcon.Error);
