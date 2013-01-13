@@ -97,23 +97,21 @@ namespace AppHarborLookout
       if (info.LatestBuild == null)
         return;
 
-      if (!IsNewerBuild(info.LatestBuild.Id))
-        return;      
-
       BuildStatus currentBuildStatus = statusProc.GetBuildStatus(info.LatestBuild.Status);
-      this.SetNotifyIcon(currentBuildStatus);
 
-      if (currentBuildStatus != this._LastBuildStatus)
+      if (!IsNewerBuild(info.LatestBuild.Id) 
+        && !BuildStatusChanged(currentBuildStatus))
+        return;
+
+      this.SetNotifyIcon(currentBuildStatus);        
+      if (BuildStatusChanged(currentBuildStatus) 
+       && !string.IsNullOrEmpty(statusProc.GetBuildStatusMsg(currentBuildStatus)))
       {
-        string buildStatusMsg = statusProc.GetBuildStatusMsg(currentBuildStatus);
-        if (!string.IsNullOrEmpty(buildStatusMsg))
-        {
-          notifyIcon.ShowBalloonTip(
-              timeout: 1000,
-              tipTitle: "Build Status",
-              tipText: buildStatusMsg,
-              tipIcon: ToolTipIcon.Warning);
-        }
+        notifyIcon.ShowBalloonTip(
+            timeout: 1000,
+            tipTitle: "Build Status",
+            tipText: statusProc.GetBuildStatusMsg(currentBuildStatus),
+            tipIcon: ToolTipIcon.Warning);
       }
 
       if (this._FormHasBeenShown)
@@ -122,9 +120,8 @@ namespace AppHarborLookout
         this.UpdateBuildUI(info.ApplicationName, info.LatestBuild, currentBuildStatus);
         this.SetNewerBuildId(info.LatestBuild.Id);
       }
-
-      if (currentBuildStatus == BuildStatus.Succeeded || currentBuildStatus == BuildStatus.Failed)
-        this._LastBuildStatus = currentBuildStatus;
+      
+      this._LastBuildStatus = currentBuildStatus;
     }
 
     /// <summary>
@@ -195,6 +192,15 @@ namespace AppHarborLookout
       return string.IsNullOrEmpty(this._latestBuildId) || buildId != this._latestBuildId;
     }
 
+    /// <summary>
+    /// Determines if the status changed with respect to <paramref name="currentBuildStatus"/>
+    /// </summary>
+    /// <param name="currentBuildStatus">The current build status.</param>
+    /// <returns>true if it changed, false otherwise.</returns>
+    private bool BuildStatusChanged(BuildStatus currentBuildStatus)
+    {
+      return currentBuildStatus != this._LastBuildStatus;
+    }
     /// <summary>
     /// Processes the link click.
     /// </summary>
