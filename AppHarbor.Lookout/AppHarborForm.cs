@@ -1,5 +1,4 @@
-﻿/// <param name="y"></param>
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -103,25 +102,31 @@ namespace AppHarborLookout
         && !BuildStatusChanged(currentBuildStatus))
         return;
 
-      this.SetNotifyIcon(currentBuildStatus);        
-      if (BuildStatusChanged(currentBuildStatus) 
-       && !string.IsNullOrEmpty(statusProc.GetBuildStatusMsg(currentBuildStatus)))
+      //    Bug: Build status balloon tip showing several times.
+      // Reason: Async calls were made before _LastBuildStatus was updated.
+      //    Fix: lock(this) stops this from happening.
+      lock (this)
       {
-        notifyIcon.ShowBalloonTip(
-            timeout: 1000,
-            tipTitle: "Build Status",
-            tipText: statusProc.GetBuildStatusMsg(currentBuildStatus),
-            tipIcon: ToolTipIcon.Warning);
-      }
+        this.SetNotifyIcon(currentBuildStatus);
+        if (BuildStatusChanged(currentBuildStatus)
+         && !string.IsNullOrEmpty(statusProc.GetBuildStatusMsg(currentBuildStatus)))
+        {
+          notifyIcon.ShowBalloonTip(
+              timeout: 1000,
+              tipTitle: "Build Status",
+              tipText: statusProc.GetBuildStatusMsg(currentBuildStatus),
+              tipIcon: ToolTipIcon.Warning);
+        }
 
-      if (this._FormHasBeenShown)
-      {
-        this.ProcessErrors(info.Errors);
-        this.UpdateBuildUI(info.ApplicationName, info.LatestBuild, currentBuildStatus);
-        this.SetNewerBuildId(info.LatestBuild.Id);
+        if (this._FormHasBeenShown)
+        {
+          this.ProcessErrors(info.Errors);
+          this.UpdateBuildUI(info.ApplicationName, info.LatestBuild, currentBuildStatus);
+          this.SetNewerBuildId(info.LatestBuild.Id);
+        }
+
+        this._LastBuildStatus = currentBuildStatus;
       }
-      
-      this._LastBuildStatus = currentBuildStatus;
     }
 
     /// <summary>
