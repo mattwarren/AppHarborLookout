@@ -1,372 +1,357 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Security.Authentication;
 using System.Windows.Forms;
-using AppHarbor;
-using AppHarborLookout.Properties;
-using System.Diagnostics;
 using AppHarbor.Model;
-//using Timer = System.Windows.Forms.Timer;
-using Timer = System.Timers.Timer;
-using System.Collections.Generic;
-using System.Globalization;
 
 namespace AppHarborLookout
 {
-    public enum BuildStatus
+
+  public partial class AppHarborForm : Form
+  {
+    private bool _allowVisible = false;
+    private bool _allowClose = false;
+    private bool _FormHasBeenShown = false;
+    private bool _isVisible = false;
+    private readonly BuildStatusInterpreter statusProc = new BuildStatusInterpreter();
+    private BuildStatus _LastBuildStatus = BuildStatus.Unknown;
+    private BuildProcessor buildProc;
+    private string _latestBuildId;
+
+    public AppHarborForm()
     {
-        Unknown,
-        Succeeded,
-        Failed,
-        Queued,
-        Building
+      InitializeComponent();
+      notifyIcon.ContextMenuStrip = contextMenuStrip;
+      // TODO: Implement previous builds tab page
+      tabControl.TabPages.Remove(previousBuildsTabPage);
+      InitializeErrorsTab();
+      InitializeClickEvents();
+      InitializeBuildProcessor();
+      notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout", "Monitoring your builds", ToolTipIcon.Info);
     }
 
-    public partial class AppHarborForm : Form
+    /// <summary>
+    /// Initializes the build processor.
+    /// </summary>
+    private void InitializeBuildProcessor()
     {
-        private bool _allowVisible = false;
-        private bool _allowClose = false;
-        private bool _formHasBeenShown = false;
-        private bool _isVisible = false;
-        private readonly Timer timer;
+      this.buildProc = new BuildProcessor(5000);
+      this.buildProc.OnBuildProcessed += OnBuildProcessed;
+      this.buildProc.OnGeneralError += OnBuildGeneralError;
+      this.buildProc.OnAuthorizationError += OnBuildAuthorizationError;
+    }
 
-        private BuildStatus _lastBuildStatus = BuildStatus.Unknown;
-
-        public AppHarborForm()
-        {
-            InitializeComponent();
-            notifyIcon.ContextMenuStrip = contextMenuStrip;
-
-            tabControl.TabPages.Remove(previousBuildsTabPage);
-
-            //http://stackoverflow.com/questions/2154154/datagridview-how-to-set-column-width
-            DataGridViewTextBoxColumn subTitleColumn = new DataGridViewTextBoxColumn();
-            subTitleColumn.HeaderText = "Subtitle";
-            subTitleColumn.MinimumWidth = 50;
-            subTitleColumn.FillWeight = 65;
-            subTitleColumn.DataPropertyName = "Date";
-
-            DataGridViewTextBoxColumn summaryColumn = new DataGridViewTextBoxColumn();
-            summaryColumn.HeaderText = "Summary";
-            summaryColumn.MinimumWidth = 50;
-            summaryColumn.FillWeight = 200;
-            summaryColumn.DataPropertyName = "Value";
-
-            dataGridViewErrors.Columns.AddRange(new DataGridViewTextBoxColumn[] { subTitleColumn, summaryColumn });
-
-            //Make the timer fire straight-away, the 1st time
-            timer = new Timer {Enabled = true, Interval = 500};            
-            //timer.Tick += (sender, e) =>
-            timer.Elapsed += (sender, e) =>
+    /// <summary>
+    /// Initializes the errors tab.
+    /// </summary>
+    private void InitializeErrorsTab()
+    {
+      var subTitleColumn = new DataGridViewTextBoxColumn()
             {
-                timer.Stop();
-                try
-                {                    
-                    if (String.IsNullOrWhiteSpace(Settings.Default.AccessToken))
-                    {
-                        UpdateAuthorisationDetails();
-                    }
-
-                    var authInfo = new AuthInfo(Settings.Default.AccessToken, Settings.Default.TokenType);
-                    var client = new AppHarborClient(authInfo);
-                    var applications = client.GetApplications();
-                    if (applications == null || applications.Count() == 0)
-                        return;
-
-                    var application = applications.First();
-
-                    var builds = client.GetBuilds(application.Slug);
-                    var errors = client.GetErrors(application.Slug);
-                    if (errors != null && errors.Count() > 0)
-                    {
-                        var errorInfo = errors.Take(10).Select(x => new
-                        {
-                            //2012-07-03T00:36:44.292Z
-                            Date = ParseDate(x.Date).ToString(),
-                            Value = x.Exception.Message
-                        }).ToList();
-                        if (_formHasBeenShown)
-                        {
-                            dataGridViewErrors.Invoke((Action)delegate
-                            {
-                                dataGridViewErrors.DataSource = errorInfo;
-                                dataGridViewErrors.Show();
-                            });
-                        }
-                    }
-
-                    //var tests = client.GetTests(application.Slug, build.Id);
-
-                    var latestBuild = builds.OrderByDescending(x => x.Created)
-                                    //.Skip(1)
-                                    .FirstOrDefault();
-                    if (latestBuild == null)
-                        return;
-
-                    var currentBuildStatus = GetBuildStatus(latestBuild.Status);
-
-                    SetNotifyIcon(currentBuildStatus);
-
-                    if (currentBuildStatus != _lastBuildStatus)
-                    {
-                        string msg = GetBuildStatusMsg(currentBuildStatus, _lastBuildStatus);
-                        if (String.IsNullOrEmpty(msg) == false)
-                            notifyIcon.ShowBalloonTip(1000, "Build Status", msg, ToolTipIcon.Warning);
-                    }
-
-                    if (_formHasBeenShown)
-                    {                        
-                        UpdateBuildUI(application, latestBuild, currentBuildStatus);
-                    }
-                    else
-                    {
-                        //Store the info, so when the form is popped up, we can populate it??
-                    }
-
-                    if (currentBuildStatus == BuildStatus.Succeeded ||
-                        currentBuildStatus == BuildStatus.Failed)
-                    {
-                        //We only really care about failed/succeeded changes
-                        _lastBuildStatus = currentBuildStatus;
-                    }                    
-                }
-                catch (System.Exception ex)
-                {
-                    notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout - Error",
-                                                    ex.Message + "\n" + ex.StackTrace, ToolTipIcon.Error);
-                }
-                finally
-                {
-#if DEBUG
-                    timer.Interval = (int)TimeSpan.FromSeconds(10).TotalMilliseconds;
-#else
-                    timer.Interval = (int)TimeSpan.FromMinutes(1).TotalMilliseconds;
-#endif
-                    timer.Start();
-                }
+              HeaderText = "Subtitle",
+              MinimumWidth = 50,
+              FillWeight = 65,
+              DataPropertyName = "Date"
             };
 
-            buildUrlLinkLabel.LinkClicked += ProcessLinkClick;
-            logUrlLinkLabel.LinkClicked += ProcessLinkClick;
-            applicationUrlLinkLabel.LinkClicked += ProcessLinkClick;
+      var summaryColumn = new DataGridViewTextBoxColumn()
+      {
+        HeaderText = "Summary",
+        MinimumWidth = 50,
+        FillWeight = 200,
+        DataPropertyName = "Value"
+      };
 
-            mainScreenToolStripMenuItem.Click += (sender, e) => ToggleMainScreen();
+      dataGridViewErrors.Columns
+                        .AddRange(new DataGridViewTextBoxColumn[] {
+                            subTitleColumn,
+                            summaryColumn
+                          });
+    }
 
-            reAuthoriseToolStripMenuItem.Click += (sender, e) => UpdateAuthorisationDetails();
+    /// <summary>
+    /// Initializes the click events.
+    /// </summary>
+    private void InitializeClickEvents()
+    {
+      buildLnk.LinkClicked += ProcessLinkClick;
+      logLnk.LinkClicked += ProcessLinkClick;
+      applicationLnk.LinkClicked += ProcessLinkClick;
+      closeLinkLabel.Click += (sender, e) => HideMainScreen();
 
-            exitToolStripMenuItem.Click += (sender, e) =>
-            {
-                _allowClose = true;
-                Close();
-                //If the form hasn't been shown, Close() on it's own doesn't kill the process, use Exit also
-                Environment.Exit(1);
-            };
+      mainToolStripMenuItem.Click += (sender, e) => ToggleMainScreen();
+      reAuthoriseToolStripMenuItem.Click += (sender, e) => this.buildProc.UpdateAuthorizationDetails();
+      exitToolStripMenuItem.Click += ExitApp;
+      notifyIcon.Click += ProcessTrayIconClick;
+    }
 
-            notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout", "Monitoring your builds", ToolTipIcon.Info);
+    /// <summary>
+    /// Called when a [build is processed].
+    /// </summary>
+    /// <param name="info">The build info.</param>
+    private void OnBuildProcessed(BuildInfo info)
+    {
+      if (info.LatestBuild == null)
+        return;
 
-            notifyIcon.Click += (sender,  e) =>
-            {
-                var mouseEvent = e as MouseEventArgs;
-                if (mouseEvent != null && mouseEvent.Button == MouseButtons.Left)
-                    ToggleMainScreen();
-            };
+      BuildStatus currentBuildStatus = statusProc.GetBuildStatus(info.LatestBuild.Status);
 
-            closeLinkLabel.Click += (sender, e) => HideMainScreen();
+      if (!IsNewerBuild(info.LatestBuild.Id) 
+        && !BuildStatusChanged(currentBuildStatus))
+        return;
+
+      //    Bug: Build status balloon tip showing several times.
+      // Reason: Async calls were made before _LastBuildStatus was updated.
+      //    Fix: lock(this) stops this from happening.
+      lock (this)
+      {
+        this.SetNotifyIcon(currentBuildStatus);
+        if (BuildStatusChanged(currentBuildStatus)
+         && !string.IsNullOrEmpty(statusProc.GetBuildStatusMsg(currentBuildStatus)))
+        {
+          notifyIcon.ShowBalloonTip(
+              timeout: 1000,
+              tipTitle: "Build Status",
+              tipText: statusProc.GetBuildStatusMsg(currentBuildStatus),
+              tipIcon: ToolTipIcon.Warning);
         }
 
-        private DateTime ParseDate(string rawDate)
+        if (this._FormHasBeenShown)
         {
-            DateTime date;
-            var cleanedUpDate = rawDate.Replace("T", " ").Replace("Z", "");
-            if (DateTime.TryParseExact(cleanedUpDate, "yyyy-MM-dd hh:mm:ss.fff",
-                                       CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal, out date))
-            {
-                return date;
-            }
-            return default(DateTime);
+          this.ProcessErrors(info.Errors);
+          this.UpdateBuildUI(info.ApplicationName, info.LatestBuild, currentBuildStatus);
+          this.SetNewerBuildId(info.LatestBuild.Id);
         }
 
-        private void UpdateAuthorisationDetails()
-        {
-            //Settings stored in C:\Users\matt.warren\AppData\Local\AppHarborLookout
-            //App authorized at https://appharbor.com/user/authorizations
-            string clientId = "49e17241-0631-47ec-bbf5-eface6552ea8";
-            string clientSecret = "1d4e4d1b-9798-4bd3-bd86-f17ca00505e3";
+        this._LastBuildStatus = currentBuildStatus;
+      }
+    }
 
-            var result = GetAuthorisation(clientId, clientSecret);
-            var credentials = result.Item1;
-            if (credentials != null)
-            {
-                Settings.Default.AccessToken = credentials.AccessToken;
-                Settings.Default.TokenType = credentials.TokenType;
-                Settings.Default.Save();
-            }
-            else if (result.Item2 != null)
-            {
-                notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout - Authorisation error", result.Item2, ToolTipIcon.Error);
-            }
-        }
+    /// <summary>
+    /// Processes the errors and displays them on UI.
+    /// </summary>
+    /// <param name="errors">The errors to process.</param>
+    private void ProcessErrors(IEnumerable<Error> errors)
+    {
+      if (errors == null || errors.Count() <= 0)
+        return;
 
-        private void UpdateBuildUI(AppHarbor.Model.Application application, Build build, BuildStatus status)
-        {
-            currentInfoTabPage.Invoke((Action)delegate
-            {
-                pictureBoxLoadingSpinner.Hide();
-                labelAppName.Text = application.Name;
-                labelStatus.Text = build.Status;
-                labelTime.Text = build.Created.ToString();
-                var isDeployed = (build.Deployed != DateTime.MinValue);
-                labelDeployed.Text = isDeployed ? build.Deployed.ToString() : "NOT DEPLOYED";
-                labelDeployed.ForeColor = (isDeployed ? Color.Green : Color.Orange);
+      var errorsInfo = errors.Select(error => new
+                      {
+                        Date = error.Date
+                                    .ParseAsDate()
+                                    .FormatDateToStr(),
+                        Value = error.GetErrorMessage()
+                      }).ToList();
 
-                SetupUrl(buildUrlLinkLabel, build.Url.AbsoluteUri);
-                SetupUrl(applicationUrlLinkLabel, String.Format("http://{0}.apphb.com", application.Name.ToLowerInvariant()));
+      dataGridViewErrors.Invoke((Action)
+          (() =>
+          {
+            dataGridViewErrors.DataSource = errorsInfo;
+            dataGridViewErrors.Show();
+          }));
+    }
 
-                labelCommit.Text = build.Commit.Message;
+    /// <summary>
+    /// Updates the build UI.
+    /// </summary>
+    /// <param name="appName">Name of the application.</param>
+    /// <param name="build">The build.</param>
+    /// <param name="status">The status.</param>
+    private void UpdateBuildUI(string appName, Build build, BuildStatus status)
+    {
+      currentInfoTabPage.Invoke((Action)
+          (() =>
+          {
+            pictureBoxLoadingSpinner.Hide();
+            lblAppName.Text = appName;
+            lblStatus.Text = build.Status;
+            lblCreateTime.Text = build.Created.FormatDateToStr();
+            lblDeployTime.Text = IsDeployed(build) ? build.Deployed.FormatDateToStr() : "NOT DEPLOYED";
+            lblDeployTime.ForeColor = IsDeployed(build) ? Color.Green : Color.Orange;
+            buildLnk.SetupUrl(build.Url.AbsoluteUri);
+            applicationLnk.SetupUrl(string.Format("http://{0}.apphb.com", appName.ToLowerInvariant()));
+            txtCommitMsg.Text = build.Commit.Message;
+            lblStatus.ForeColor = statusProc.GetBuildStatusColor(status);
+          }));
+    }
 
-                var colour = GetColourForBuildStatus(status);
-                labelStatus.ForeColor = colour;
-            });
-        }
+    /// <summary>
+    /// Sets the newer build id.
+    /// </summary>
+    /// <param name="buildId">The build id.</param>
+    private void SetNewerBuildId(string buildId)
+    {
+      this._latestBuildId = buildId;
+    }
 
-        void ProcessLinkClick(object sender, LinkLabelLinkClickedEventArgs e)
-        {
-            var url = e.Link.LinkData as String;
-            if (url != null)
-                Process.Start(url);   
-        }
+    /// <summary>
+    /// Determines whether [is newer build] [the specified latest build].
+    /// </summary>
+    /// <param name="buildId">The build id.</param>
+    /// <returns><c>true</c> if [is newer build] [the specified latest build]; otherwise, <c>false</c>.</returns>
+    private bool IsNewerBuild(string buildId)
+    {
+      return string.IsNullOrEmpty(this._latestBuildId) || buildId != this._latestBuildId;
+    }
 
-        private string GetBuildStatusMsg(BuildStatus current, BuildStatus previous)
-        {
-            if (current == BuildStatus.Succeeded) // && previous == BuildStatus.Failed)
-                return "Yay, the build was fixed";
-            if (current == BuildStatus.Failed) // && previous == BuildStatus.Succeeded)
-                return "Uh oh, someone broke the build!!";
+    /// <summary>
+    /// Determines if the status changed with respect to <paramref name="currentBuildStatus"/>
+    /// </summary>
+    /// <param name="currentBuildStatus">The current build status.</param>
+    /// <returns>true if it changed, false otherwise.</returns>
+    private bool BuildStatusChanged(BuildStatus currentBuildStatus)
+    {
+      return currentBuildStatus != this._LastBuildStatus;
+    }
+    /// <summary>
+    /// Processes the link click.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="e">The <see cref="LinkLabelLinkClickedEventArgs" /> instance containing the event data.</param>
+    private void ProcessLinkClick(object sender, LinkLabelLinkClickedEventArgs e)
+    {
+      if (e.Link.LinkData is string)
+        Process.Start(e.Link.LinkData.ToString());
+    }
 
-            return null;
-        }
+    /// <summary>
+    /// Exits the app.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="e">The <see cref="EventArgs" /> instance containing the event data.</param>
+    private void ExitApp(object sender, EventArgs e)
+    {
+      this._allowClose = true;
+      this.Close();
+      Environment.Exit(1);
+    }
 
-        private Color GetColourForBuildStatus(BuildStatus currentBuildStatus)
-        {
-            if (currentBuildStatus == BuildStatus.Failed)
-                return Color.Red;
-            if (currentBuildStatus == BuildStatus.Succeeded)
-                return Color.Green;
-            if (currentBuildStatus == BuildStatus.Queued ||
-                currentBuildStatus == BuildStatus.Building)
-                return Color.Orange;
-            return Color.Gray;
-        }
+    /// <summary>
+    /// Processes the tray icon click.
+    /// </summary>
+    /// <param name="sender">The sender.</param>
+    /// <param name="e">The <see cref="EventArgs" /> instance containing the event data.</param>
+    private void ProcessTrayIconClick(object sender, EventArgs e)
+    {
+      if (e is MouseEventArgs && (e as MouseEventArgs).Button == MouseButtons.Left)
+      {
+        this.ToggleMainScreen();
+      }
+    }
 
-        private void SetNotifyIcon(BuildStatus buildStatus)
-        {
-            //Status can be: "Succeeded", "Failed", "Queued", 
-            if (buildStatus == BuildStatus.Failed)
-                notifyIcon.Icon = Resources.RedButton;
-            else if (buildStatus == BuildStatus.Succeeded)
-                notifyIcon.Icon = Resources.GreenButton;
-            else if (buildStatus == BuildStatus.Queued ||
-                     buildStatus == BuildStatus.Building)
-                notifyIcon.Icon = Resources.OrangeButton;
-            else
-                notifyIcon.Icon = Resources.GrayButton;
-            
-            var text = String.Format(
+    /// <summary>
+    /// Sets the notify icon.
+    /// </summary>
+    /// <param name="buildStatus">The build status.</param>
+    private void SetNotifyIcon(BuildStatus buildStatus)
+    {
+      notifyIcon.Icon = statusProc.GetBuildStatusNotifyIcon(buildStatus);
+      string text = string.Format(
 @"AppHarbor Lookout
 Build Status: {0}
 Updated at: {1}",
-                     buildStatus, DateTime.Now.ToShortTimeString());
+                     buildStatus,
+                     DateTime.Now.ToShortTimeString());
 
-            //Text length must be less than 64 characters long.
-            notifyIcon.Text = String.Join("", text.Take(63));
-        }
-
-        private BuildStatus GetBuildStatus(string status)
-        {
-            if (status.ToLowerInvariant() == "failed")
-                return BuildStatus.Failed;
-            if (status.ToLowerInvariant() == "succeeded")
-                return BuildStatus.Succeeded;
-            if (status.ToLowerInvariant() == "queued")
-                return BuildStatus.Queued;
-            if (status.ToLowerInvariant() == "building")
-                return BuildStatus.Building;
-            return BuildStatus.Unknown;
-        }
-
-        private void SetupUrl(LinkLabel urlLinkLabel, string url)
-        {
-            //var url = fullUrl.Url.AbsoluteUri;
-            urlLinkLabel.Links.Remove(urlLinkLabel.Links[0]);
-            urlLinkLabel.Links.Add(0, urlLinkLabel.Text.Length, url);
-            urlLinkLabel.Enabled = true;
-        }
-
-        private Tuple<AuthInfo, string> GetAuthorisation(string clientId, string clientSecret)
-        {
-            try
-            {
-                var authDetails = AppHarborClient.AskForAuthorization(clientId, clientSecret, TimeSpan.FromSeconds(30));
-                return Tuple.Create<AuthInfo, string>(authDetails, null);
-            }
-            catch (AuthenticationException)
-            {
-                return Tuple.Create<AuthInfo, string>(null, "Failed to get authorization");
-            }
-            catch (TimeoutException)
-            {
-                return Tuple.Create<AuthInfo, string>(null, "Timeout, you have to be faster than that");                
-            }
-            catch (System.Exception ex)
-            {
-                return Tuple.Create<AuthInfo, string>(null, ex.Message);
-            }
-        }
-
-        private void ToggleMainScreen()
-        {
-            if (_isVisible)
-                HideMainScreen();
-            else
-                ShowMainScreen();
-        }
-
-        private void HideMainScreen()
-        {
-            _isVisible = false;
-            Hide();
-        }
-
-        private void ShowMainScreen()
-        {            
-            var cursorPosn = new Point(Cursor.Position.X, Cursor.Position.Y);            
-            var mouseLocation = new Point(cursorPosn.X - Width, cursorPosn.Y - Height - 15);
-            if (mouseLocation.Y < 15)
-                mouseLocation.Y = 15;
-            StartPosition = FormStartPosition.Manual;
-            Location = mouseLocation;
-            _allowVisible = true;
-            _isVisible = true;
-            _formHasBeenShown = true;
-            Show();
-        }
-
-        protected override void SetVisibleCore(bool value)
-        {
-            if (!_allowVisible) 
-                value = false;
-            base.SetVisibleCore(value);
-        }
-
-        protected override void OnFormClosing(FormClosingEventArgs e)
-        {
-            if (!_allowClose)
-            {
-                Hide();
-                e.Cancel = true;
-            }
-            base.OnFormClosing(e);
-        }       
+      notifyIcon.Text = string.Join(string.Empty, text.Take(63));
     }
+
+    /// <summary>
+    /// Determines whether the specified build is deployed.
+    /// </summary>
+    /// <param name="build">The build object.</param>
+    /// <returns><c>true</c> if the specified build is deployed; otherwise, <c>false</c>.</returns>
+    private static bool IsDeployed(Build build)
+    {
+      return build.Deployed != DateTime.MinValue;
+    }
+
+    /// <summary>
+    /// Toggles the visibility of the main screen.
+    /// </summary>
+    private void ToggleMainScreen()
+    {
+      if (this._isVisible)
+        this.HideMainScreen();
+      else
+        this.ShowMainScreen();
+    }
+
+    /// <summary>
+    /// Hides the main screen.
+    /// </summary>
+    private void HideMainScreen()
+    {
+      this._isVisible = false;
+      this.Hide();
+    }
+
+    /// <summary>
+    /// Shows the main screen.
+    /// </summary>
+    private void ShowMainScreen()
+    {
+      var cursorPos = new Point(Cursor.Position.X, Cursor.Position.Y);
+      var mouseLoc = new Point(cursorPos.X - Width, cursorPos.Y - Height - 15);
+
+      if (mouseLoc.Y < 15)
+        mouseLoc.Y = 15;
+
+      this.StartPosition = FormStartPosition.Manual;
+      this.Location = mouseLoc;
+
+      if (!this.IsFormFullyVisible())
+        this.MoveToVisibleSpace();
+
+      this._allowVisible = true;
+      this._isVisible = true;
+      this._FormHasBeenShown = true;
+      this.Show();
+    }
+
+    /// <summary>
+    /// Sets the visible core.
+    /// </summary>
+    /// <param name="value">true to make the control visible; otherwise, false.</param>
+    protected override void SetVisibleCore(bool value)
+    {
+      base.SetVisibleCore(this._allowVisible && value);
+    }
+
+    /// <summary>
+    /// Raises the <see cref="E:System.Windows.Forms.Form.FormClosing" /> event.
+    /// </summary>
+    /// <param name="e">A <see cref="T:System.Windows.Forms.FormClosingEventArgs" /> that contains the event data.</param>
+    protected override void OnFormClosing(FormClosingEventArgs e)
+    {
+      if (!this._allowClose)
+      {
+        this.Hide();
+        e.Cancel = true;
+      }
+
+      base.OnFormClosing(e);
+    }
+
+    /// <summary>
+    /// Called when [build authorization error].
+    /// </summary>
+    /// <param name="message">The message.</param>
+    private void OnBuildAuthorizationError(string message)
+    {
+      this.notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout - Authorization error", message, ToolTipIcon.Error);
+    }
+
+    /// <summary>
+    /// Called when [build general error].
+    /// </summary>
+    /// <param name="message">The message.</param>
+    private void OnBuildGeneralError(string message)
+    {
+      this.notifyIcon.ShowBalloonTip(1000, "AppHarbor Lookout - Error", message, ToolTipIcon.Error);
+    }
+  }
 }
